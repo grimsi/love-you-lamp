@@ -29,12 +29,10 @@ os_timer_t device_status_report_timer;
 int interrupt_counter = 0;
 
 void setup() {
-    delay(500);
-    pinMode(D5, OUTPUT); // sets the pins to output mode
-    pinMode(D6, OUTPUT);
-    pinMode(D7, OUTPUT);
+    delay(500); // necessary, wait for WiFi module to start
     Serial.begin(74880);
     esppl_init(callback);
+    setup_interrupts();
     esppl_sniffing_start();
     Serial.printf("Startup complete\n");
 }
