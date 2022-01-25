@@ -14,10 +14,22 @@
 // Default value is false
 #define SEND_DEVICE_NOTIFICATIONS true
 
+// Pins where the LED is connected to
+#define LED_RED_PIN D1
+#define LED_GREEN_PIN D2
+#define LED_BLUE_PIN D3
+
+// This is dependent on the exact version of your board, but most ESP8266's have it on D4
+#define LED_BUILTIN_ESP8266 D4
+
 void callback(esppl_frame_info *info);
 bool is_device_active(Device *device);
 void print_device_status(void *pArg);
 void setup_interrupts();
+void red(int intensity);
+void green(int intensity);
+void blue(int intensity);
+void rgb(int red, int green, int blue);
 
 Device* devices[] = {
         new Device("Anna-Lena iPhone", (uint8_t[]) {0x82, 0xae, 0x30, 0x88, 0xd2, 0xc3}),
@@ -25,12 +37,23 @@ Device* devices[] = {
         new Device("Simon Handy", (uint8_t[]) {0x36, 0x56, 0xdb, 0x3b, 0xc2, 0x14})
 };
 
+int led_pins[3] = { LED_RED_PIN, LED_GREEN_PIN, LED_BLUE_PIN };
+
 os_timer_t device_status_report_timer;
 int interrupt_counter = 0;
 
 void setup() {
     delay(500); // necessary, wait for WiFi module to start
     Serial.begin(74880);
+
+    pinMode(LED_BLUE_PIN, OUTPUT);
+    pinMode(LED_RED_PIN, OUTPUT);
+    pinMode(LED_GREEN_PIN, OUTPUT);
+
+    digitalWrite(LED_RED_PIN, 0);
+    digitalWrite(LED_GREEN_PIN, 0);
+    digitalWrite(LED_BLUE_PIN, 0);
+
     esppl_init(callback);
     setup_interrupts();
     esppl_sniffing_start();
@@ -72,11 +95,35 @@ void print_device_status(void *pArg) {
     Serial.print("\n");
 
     Serial.printf("Current time: %lu\tTimeout: %i\n", millis(), DEVICE_TIMEOUT_MILLIS);
-    for(Device *device: devices) {
+    for(int i = 0; i < 3; i++) {
+        Device *device = devices[i];
         Serial.printf("Device name: \"%s\"\tStatus: %s\tLast seen: %lu\n", device->getName().c_str(), is_device_active(device) ? "active  " : "inactive", device->getLastSeen());
+        if(is_device_active(device)) {
+            digitalWrite(led_pins[i], 1);
+        } else {
+            digitalWrite(led_pins[i], 0);
+        }
     }
 
     Serial.print("\n");
+}
+
+void red(int intensity) {
+    analogWrite(LED_RED_PIN, intensity);
+}
+
+void green(int intensity) {
+    analogWrite(LED_GREEN_PIN, intensity);
+}
+
+void blue(int intensity) {
+    analogWrite(LED_BLUE_PIN, intensity);
+}
+
+void rgb(int red_intensity, int green_intensity, int blue_intensity) {
+    red(red_intensity);
+    green(green_intensity);
+    blue(blue_intensity);
 }
 
 void loop() {
