@@ -1,5 +1,5 @@
 #include <ESP8266WiFi.h>
-#include "./esppl_struct.h"
+#include "./esppl_struct.h++"
 
 extern "C" {
 #include "user_interface.h"
@@ -16,7 +16,7 @@ bool esppl_sniffing_enabled = false;
 void esppl_buf_to_info(uint8_t *frame, signed rssi, uint16_t len);
 
 /*
- * Promiscuous RX callback function
+ * Promiscuous RX process_packet function
  */
 void esppl_rx_cb(uint8_t *buf, uint16_t len) {
     if (len == sizeof(struct sniffer_buf2)) {
@@ -175,7 +175,7 @@ void esppl_buf_to_info(uint8_t *frame, signed rssi, uint16_t len) {
                 info.isvalid = false; //TODO Proper checksum validation
         }
 
-        // - User callback function
+        // - User process_packet function
         if (info.isvalid) {
             user_cb(&info);
         }

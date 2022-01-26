@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "./esppl_functions.h"
-#include "Device.h"
+#include "Device.h++"
 
 // After how many ms of not receiving a message from a device it will be marked as "unavailable"
 // Default value is 15 Minutes (900000 ms)
@@ -20,57 +20,29 @@
 #define LED_BLUE_PIN D3
 
 
-void callback(esppl_frame_info *info);
+void process_packet(esppl_frame_info *info);
 bool is_device_active(Device *device);
 void update_device_status(void *pArg);
 void report_device_status(void *pArg);
 void setup_interrupts();
-void red(int intensity);
-void green(int intensity);
-void blue(int intensity);
-void rgb(int red, int green, int blue);
+RGBColor calculate_rgb_value();
+void rgb(byte red_intensity, byte green_intensity, byte blue_intensity);
 
 Device* devices[] = {
-        new Device("Anna-Lena iPhone", (uint8_t[]) {0x82, 0xae, 0x30, 0x88, 0xd2, 0xc3}),
-        new Device("Simon iPad", (uint8_t[]) {0x72, 0xF7, 0x0A, 0x4F, 0x5C, 0x37}),
-        new Device("Simon Handy", (uint8_t[]) {0x36, 0x56, 0xdb, 0x3b, 0xc2, 0x14})
+        new Device("Anna-Lena iPhone", new MACAddress(0x82, 0xae, 0x30, 0x88, 0xd2, 0xc3), new RGBColor(0, 0, 122)),
+        new Device("Simon iPad", new MACAddress(0x72, 0xF7, 0x0A, 0x4F, 0x5C, 0x37), new RGBColor(122, 0, 0)),
+        new Device("Simon Handy", new MACAddress(0x36, 0x56, 0xdb, 0x3b, 0xc2, 0x14), new RGBColor(0, 122, 0))
 };
-
-int led_pins[3] = { LED_RED_PIN, LED_GREEN_PIN, LED_BLUE_PIN };
 
 os_timer_t device_status_update_timer, device_report_timer;
 
-void setup() {
-    delay(500); // necessary, wait for WiFi module to start
-    Serial.begin(74880);
+void process_packet(esppl_frame_info *info) {
+    auto sourceaddr = MACAddress(info->sourceaddr);
+    auto receiveraddr = MACAddress(info->receiveraddr);
 
-    pinMode(LED_BLUE_PIN, OUTPUT);
-    pinMode(LED_RED_PIN, OUTPUT);
-    pinMode(LED_GREEN_PIN, OUTPUT);
-
-    digitalWrite(LED_RED_PIN, 0);
-    digitalWrite(LED_GREEN_PIN, 0);
-    digitalWrite(LED_BLUE_PIN, 0);
-
-    esppl_init(callback);
-    setup_interrupts();
-    esppl_sniffing_start();
-    Serial.printf("Startup complete\n");
-}
-
-bool maccmp(const uint8_t *mac1, const uint8_t *mac2) {
-    for (int i = 0; i < ESPPL_MAC_LEN; i++) {
-        if (mac1[i] != mac2[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-void callback(esppl_frame_info *info) {
     // check if any known mac is in the packet, either as sender (more likely) or recipient
     for(Device *device: devices) {
-        if (maccmp(info->sourceaddr, device->getMacAddress()) || maccmp(info->receiveraddr, device->getMacAddress())) {
+        if (sourceaddr == *device->getMacAddress() || receiveraddr == *device->getMacAddress()) {
             Serial.printf("Detected device \"%s\"\n", device->getName().c_str());
             device->setLastSeen(millis());
             return;
@@ -92,13 +64,8 @@ bool is_device_active(Device *device){
 }
 
 void update_device_status(void *pArg) {
-    for(int i = 0; i < 3; i++) {
-        if(is_device_active(devices[i])) {
-            digitalWrite(led_pins[i], 1);
-        } else {
-            digitalWrite(led_pins[i], 0);
-        }
-    }
+    RGBColor color = calculate_rgb_value();
+    rgb(color.red(), color.green(), color.blue());
 }
 
 void report_device_status(void *pArg) {
@@ -110,22 +77,42 @@ void report_device_status(void *pArg) {
     Serial.print("\n");
 }
 
-void red(int intensity) {
-    analogWrite(LED_RED_PIN, intensity);
+RGBColor calculate_rgb_value() {
+    byte red, green, blue = 0;
+
+    for(Device *device : devices) {
+        if(is_device_active(device)) {
+            red += device->getLedColor()->red();
+            green += device->getLedColor()->green();
+            blue += device->getLedColor()->blue();
+        }
+    }
+
+    return {red, green, blue};
 }
 
-void green(int intensity) {
-    analogWrite(LED_GREEN_PIN, intensity);
+void rgb(byte red_intensity, byte green_intensity, byte blue_intensity) {
+    analogWrite(LED_RED_PIN, red_intensity);
+    analogWrite(LED_GREEN_PIN, green_intensity);
+    analogWrite(LED_BLUE_PIN, blue_intensity);
 }
 
-void blue(int intensity) {
-    analogWrite(LED_BLUE_PIN, intensity);
-}
+void setup() {
+    delay(500); // necessary, wait for WiFi module to start
+    Serial.begin(74880);
 
-void rgb(int red_intensity, int green_intensity, int blue_intensity) {
-    red(red_intensity);
-    green(green_intensity);
-    blue(blue_intensity);
+    pinMode(LED_BLUE_PIN, OUTPUT);
+    pinMode(LED_RED_PIN, OUTPUT);
+    pinMode(LED_GREEN_PIN, OUTPUT);
+
+    digitalWrite(LED_RED_PIN, 0);
+    digitalWrite(LED_GREEN_PIN, 0);
+    digitalWrite(LED_BLUE_PIN, 0);
+
+    esppl_init(process_packet);
+    setup_interrupts();
+    esppl_sniffing_start();
+    Serial.printf("Startup complete\n");
 }
 
 void loop() {

@@ -2,11 +2,15 @@
 #define DEVICE_H
 
 
+#include "RGBColor.h++"
+#include "MACAddress.h++"
+
 class Device {
 public:
-    Device(const char *name, const uint8_t *mac_address){
+    Device(const char *name, MACAddress *mac_address, RGBColor *led_color){
         this->name = name;
         this->mac_address = mac_address;
+        this->led_color = led_color;
     }
 
     [[nodiscard]]
@@ -20,8 +24,13 @@ public:
     }
 
     [[nodiscard]]
-    const uint8_t *getMacAddress() const {
+    MACAddress *getMacAddress() const {
         return mac_address;
+    }
+
+    [[nodiscard]]
+    RGBColor *getLedColor() const {
+        return led_color;
     }
 
     void setLastSeen(ulong lastSeen) {
@@ -30,8 +39,9 @@ public:
 
 private:
     String name;
-    const uint8_t *mac_address{};
-    ulong last_seen {0};
+    MACAddress *mac_address;
+    RGBColor *led_color;
+    ulong last_seen{0};
 };
 
 
