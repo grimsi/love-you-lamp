@@ -6,25 +6,24 @@
 // Default value is 15 Minutes (900000 ms)
 #define DEVICE_TIMEOUT_MILLIS 900000
 
-// How long to wait between two device status reports in ms
-// Default value is 10 seconds (10000 ms)
-#define DEVICE_STATUS_REPORT_INTERVAL_MILLIS 10000
+// How long to wait between two device status updates in ms
+// Default value is 1 second (1000 ms)
+#define DEVICE_STATUS_UPDATE_INTERVAL_MILLIS 1000
 
-// If notification messages should be sent over serial port when a device packet is detected (makes debugging easier)
-// Default value is false
-#define SEND_DEVICE_NOTIFICATIONS true
+// How long to wait between two device status reports in ms
+// Default value is 1 second (1000 ms)
+#define DEVICE_STATUS_REPORT_INTERVAL_MILLIS 10000
 
 // Pins where the LED is connected to
 #define LED_RED_PIN D1
 #define LED_GREEN_PIN D2
 #define LED_BLUE_PIN D3
 
-// This is dependent on the exact version of your board, but most ESP8266's have it on D4
-#define LED_BUILTIN_ESP8266 D4
 
 void callback(esppl_frame_info *info);
 bool is_device_active(Device *device);
-void print_device_status(void *pArg);
+void update_device_status(void *pArg);
+void report_device_status(void *pArg);
 void setup_interrupts();
 void red(int intensity);
 void green(int intensity);
@@ -39,8 +38,7 @@ Device* devices[] = {
 
 int led_pins[3] = { LED_RED_PIN, LED_GREEN_PIN, LED_BLUE_PIN };
 
-os_timer_t device_status_report_timer;
-int interrupt_counter = 0;
+os_timer_t device_status_update_timer, device_report_timer;
 
 void setup() {
     delay(500); // necessary, wait for WiFi module to start
@@ -73,7 +71,7 @@ void callback(esppl_frame_info *info) {
     // check if any known mac is in the packet, either as sender (more likely) or recipient
     for(Device *device: devices) {
         if (maccmp(info->sourceaddr, device->getMacAddress()) || maccmp(info->receiveraddr, device->getMacAddress())) {
-            if (SEND_DEVICE_NOTIFICATIONS) Serial.printf("Detected device \"%s\"\n", device->getName().c_str());
+            Serial.printf("Detected device \"%s\"\n", device->getName().c_str());
             device->setLastSeen(millis());
             return;
         }
@@ -81,8 +79,11 @@ void callback(esppl_frame_info *info) {
 }
 
 void setup_interrupts() {
-    os_timer_setfn(&device_status_report_timer, print_device_status, &interrupt_counter);
-    os_timer_arm(&device_status_report_timer, DEVICE_STATUS_REPORT_INTERVAL_MILLIS, true);
+    os_timer_setfn(&device_status_update_timer, update_device_status, nullptr);
+    os_timer_setfn(&device_report_timer, report_device_status, nullptr);
+
+    os_timer_arm(&device_status_update_timer, DEVICE_STATUS_UPDATE_INTERVAL_MILLIS, true);
+    os_timer_arm(&device_report_timer, DEVICE_STATUS_REPORT_INTERVAL_MILLIS, true);
 }
 
 bool is_device_active(Device *device){
@@ -90,21 +91,22 @@ bool is_device_active(Device *device){
     return millis() - device->getLastSeen() < DEVICE_TIMEOUT_MILLIS;
 }
 
-void print_device_status(void *pArg) {
-
-    Serial.print("\n");
-
-    Serial.printf("Current time: %lu\tTimeout: %i\n", millis(), DEVICE_TIMEOUT_MILLIS);
+void update_device_status(void *pArg) {
     for(int i = 0; i < 3; i++) {
-        Device *device = devices[i];
-        Serial.printf("Device name: \"%s\"\tStatus: %s\tLast seen: %lu\n", device->getName().c_str(), is_device_active(device) ? "active  " : "inactive", device->getLastSeen());
-        if(is_device_active(device)) {
+        if(is_device_active(devices[i])) {
             digitalWrite(led_pins[i], 1);
         } else {
             digitalWrite(led_pins[i], 0);
         }
     }
+}
 
+void report_device_status(void *pArg) {
+    Serial.print("\n");
+    Serial.printf("Current time: %lu\tTimeout: %i\n", millis(), DEVICE_TIMEOUT_MILLIS);
+    for(Device *device : devices) {
+        Serial.printf("Device name: \"%s\"\tStatus: %s\tLast seen: %lu\n", device->getName().c_str(), is_device_active(device) ? "active  " : "inactive", device->getLastSeen());
+    }
     Serial.print("\n");
 }
 
