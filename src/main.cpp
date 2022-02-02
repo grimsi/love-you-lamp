@@ -37,7 +37,6 @@ void process_packet(esppl_frame_info *info);
 bool is_device_active(Device *device);
 int get_active_device_count();
 void write_status_led(void *pArg);
-void report_device_status(void *pArg);
 void setup_interrupts();
 void arm_sniffer_interrupts();
 void disarm_sniffer_interrupts();
@@ -47,6 +46,9 @@ RGBColor calculate_rgb_value();
 void rgb(byte red_intensity, byte green_intensity, byte blue_intensity);
 void heartbeat(void *pArg);
 void rgb_heartbeat(int red, int green, int blue);
+#ifdef DEBUG
+void report_device_status(void *pArg);
+#endif
 
 byte heartbeat_graph_values[]={
         0,  2,  4,  8, 12, 20, 32, 44, 56, 68,
@@ -57,7 +59,12 @@ byte heartbeat_graph_values[]={
         80, 55, 30, 20, 16,  8,  4,  2,  0
 };
 
-os_timer_t device_status_update_timer, device_report_timer, heartbeat_effect_timer;
+os_timer_t device_status_update_timer, heartbeat_effect_timer;
+
+#ifdef DEBUG
+os_timer_t device_report_timer;
+#endif
+
 int registered_device_count = sizeof(devices) / sizeof(devices[0]);
 bool is_heartbeat_timer_active = false;
 
@@ -100,7 +107,10 @@ void arm_sniffer_interrupts() {
 
 void disarm_sniffer_interrupts() {
     os_timer_disarm(&device_status_update_timer);
+
+    #ifdef DEBUG
     os_timer_disarm(&device_report_timer);
+    #endif
 }
 
 void enable_heartbeat_effect() {
@@ -144,6 +154,7 @@ void write_status_led(void *pArg) {
     rgb(color.red(), color.green(), color.blue());
 }
 
+#ifdef DEBUG
 void report_device_status(void *pArg) {
     Serial.print("\n");
     Serial.printf("Current time: %lu\tTimeout: %i\n", millis(), DEVICE_TIMEOUT_MILLIS);
@@ -152,6 +163,7 @@ void report_device_status(void *pArg) {
     }
     Serial.print("\n");
 }
+#endif
 
 RGBColor calculate_rgb_value() {
     byte red = 0, green = 0,  blue = 0;
