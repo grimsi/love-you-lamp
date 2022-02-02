@@ -1,6 +1,7 @@
 #ifndef RGBCOLOR_H
 #define RGBCOLOR_H
 
+#include <Arduino.h>
 
 class RGBColor {
 public:

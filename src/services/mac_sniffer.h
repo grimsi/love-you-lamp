@@ -1,10 +1,36 @@
+/**
+    MIT License
+
+    Copyright (c) 2017 Ricardo Oliveira
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+ */
+
+#ifndef MAC_SNIFFER_H
+#define MAC_SNIFFER_H
+
 #include <ESP8266WiFi.h>
-#include "./esppl_struct.h++"
+#include "../structs/esppl_struct.h++"
 
 extern "C" {
 #include "user_interface.h"
-[[maybe_unused]]
-typedef void (*freedom_outside_cb_t)(uint8 status);
+[[maybe_unused]] typedef void (*freedom_outside_cb_t)(uint8 status);
 }
 
 uint8_t esppl_channel = ESPPL_CHANNEL_DEFAULT;
@@ -23,7 +49,8 @@ void esppl_rx_cb(uint8_t *buf, uint16_t len) {
         auto *sniffer = (struct sniffer_buf2 *) buf;
         esppl_buf_to_info(sniffer->buf, sniffer->rx_ctrl.rssi, len);
     } else if (len == sizeof(struct RxControl)) {
-        auto *sniffer = (struct RxControl *) buf;
+        // Currently unused
+        // auto *sniffer = (struct RxControl *) buf;
     } else {
         auto *sniffer = (struct sniffer_buf *) buf;
         esppl_buf_to_info(sniffer->buf, sniffer->rx_ctrl.rssi, len);
@@ -228,3 +255,4 @@ void esppl_sniffing_stop() {
     esppl_sniffing_enabled = false;
 }
 
+#endif
