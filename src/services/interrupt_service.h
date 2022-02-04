@@ -2,6 +2,7 @@
 #define INTERRUPT_SERVICE_H
 
 #include <ESP8266WiFi.h>
+#include "led_service.h"
 
 class InterruptService {
 private:
@@ -13,15 +14,12 @@ private:
     os_timer_t device_report_timer;
     #endif
 
-public:
-    static InterruptService& instance() {
-        static InterruptService INSTANCE;
-        return INSTANCE;
-    }
+    LedService ledService = LedService::instance();
 
+public:
     void setup_interrupts() {
-        os_timer_setfn(&device_status_update_timer, write_status_led, nullptr);
-        os_timer_setfn(&heartbeat_effect_timer, heartbeat, nullptr);
+        os_timer_setfn(&device_status_update_timer, LedService::write_status_led, nullptr);
+        os_timer_setfn(&heartbeat_effect_timer, ledService.heartbeat, nullptr);
 
         #ifdef DEBUG
         os_timer_setfn(&device_report_timer, report_device_status, nullptr);

@@ -4,10 +4,11 @@
 #include "structs/RGBColor.h++"
 #include "config.cpp"
 #include "device_service.h"
-#include "interrupt_service.h"
 
 class LedService {
 private:
+    LedService();
+
     constexpr static byte heartbeat_graph_values[] = {
             0,  2,  4,  8, 12, 20, 32, 44, 56, 68,
             80, 92,104,116,128,140,152,164,176,188,
@@ -17,10 +18,13 @@ private:
             80, 55, 30, 20, 16,  8,  4,  2,  0
     };
 
-    InterruptService interruptService = InterruptService::instance();
+    bool is_heartbeat_timer_active = false;
 
 public :
-    bool is_heartbeat_timer_active = false;
+    static LedService& instance() {
+        static LedService INSTANCE;
+        return INSTANCE;
+    }
 
     static void write_status_led(void *pArg) {
         if(DeviceService::are_all_registered_devices_active()) {
@@ -53,16 +57,6 @@ public :
         analogWrite(LED_BLUE_PIN, blue_intensity);
     }
 
-    static void heartbeat(void *pArg) {
-        interruptService.disarm_sniffer_interrupts();
-
-        RGBColor color = calculate_rgb_value();
-        rgb_heartbeat(color.red(), color.green(), color.blue());
-        rgb(color.red(), color.green(), color.blue());
-
-        interruptService.arm_sniffer_interrupts();
-    }
-
     static void rgb_heartbeat(int red, int green, int blue) {
         float red_intensity, green_intensity, blue_intensity;
 
@@ -83,7 +77,17 @@ public :
         rgb(0, 0, 0);
     }
 
-    static void enable_heartbeat_effect() {
+    void heartbeat(void *pArg) {
+        interruptService.disarm_sniffer_interrupts();
+
+        RGBColor color = calculate_rgb_value();
+        rgb_heartbeat(color.red(), color.green(), color.blue());
+        rgb(color.red(), color.green(), color.blue());
+
+        interruptService.arm_sniffer_interrupts();
+    }
+
+    void enable_heartbeat_effect() {
         if(is_heartbeat_timer_active) return;
 
         heartbeat(nullptr);
@@ -91,7 +95,7 @@ public :
         is_heartbeat_timer_active = true;
     }
 
-    static void disable_heartbeat_effect() {
+    void disable_heartbeat_effect() {
         if(!is_heartbeat_timer_active) return;
 
         os_timer_disarm(&heartbeat_effect_timer);
