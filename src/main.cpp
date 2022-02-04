@@ -2,6 +2,8 @@
 #include "./esppl_functions.h"
 #include "Device.h++"
 
+#define COMMON_ANODE 0
+#define COMMON_CATHODE 1
 // --- CONFIG STARTS HERE ---
 
 // After how many ms of not receiving a message from a device it will be marked as "unavailable"
@@ -24,6 +26,11 @@
 #define LED_RED_PIN D1
 #define LED_GREEN_PIN D2
 #define LED_BLUE_PIN D3
+
+// Configure the type of your LED
+// Common anode means that your LED has a shared 5V (or 3.3V) and the other three pins connect to the ground
+// Common anode means that your LED has a shared ground and each pin gets supplied with 5V (or 3.3V)
+#define LED_TYPE COMMON_ANODE
 
 Device* devices[] = {
         //new Device("Anna-Lena iPhone", new MACAddress(0x82, 0xae, 0x30, 0x88, 0xd2, 0xc3), new RGBColor(0, 0, 255)),
@@ -180,9 +187,16 @@ RGBColor calculate_rgb_value() {
 }
 
 void rgb(byte red_intensity, byte green_intensity, byte blue_intensity) {
-    analogWrite(LED_RED_PIN, red_intensity);
-    analogWrite(LED_GREEN_PIN, green_intensity);
-    analogWrite(LED_BLUE_PIN, blue_intensity);
+    if(LED_TYPE == COMMON_ANODE) {
+        analogWrite(LED_RED_PIN, 255 - red_intensity);
+        analogWrite(LED_GREEN_PIN, 255 - green_intensity);
+        analogWrite(LED_BLUE_PIN, 255 - blue_intensity);
+    } else {
+        analogWrite(LED_RED_PIN, red_intensity);
+        analogWrite(LED_GREEN_PIN, green_intensity);
+        analogWrite(LED_BLUE_PIN, blue_intensity);
+    }
+
 }
 
 void heartbeat(void *pArg) {
