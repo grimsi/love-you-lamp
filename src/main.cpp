@@ -30,7 +30,7 @@
 // Configure the type of your LED
 // Common anode means that your LED has a shared 5V (or 3.3V) and the other three pins connect to the ground
 // Common anode means that your LED has a shared ground and each pin gets supplied with 5V (or 3.3V)
-#define LED_TYPE COMMON_ANODE
+#define LED_TYPE COMMON_CATHODE
 
 Device* devices[] = {
         //new Device("Anna-Lena iPhone", new MACAddress(0x82, 0xae, 0x30, 0x88, 0xd2, 0xc3), new RGBColor(0, 0, 255)),
