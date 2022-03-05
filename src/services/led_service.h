@@ -4,6 +4,7 @@
 #include "structs/RGBColor.h++"
 #include "config.cpp"
 #include "device_service.h"
+#include "report_service.h"
 
 class LedService {
 private:
@@ -20,13 +21,47 @@ private:
 
     bool is_heartbeat_timer_active = false;
 
+    os_timer_t device_status_update_timer, heartbeat_effect_timer;
+
+    #ifdef DEBUG
+    os_timer_t device_report_timer;
+    #endif
+
+
+    void setup_interrupts() {
+        os_timer_setfn(&device_status_update_timer, LedService::write_status_led, nullptr);
+        os_timer_setfn(&heartbeat_effect_timer, LedService::heartbeat, nullptr);
+
+        #ifdef DEBUG
+        os_timer_setfn(&device_report_timer, ReportService::report_device_status, nullptr);
+        #endif
+
+        arm_sniffer_interrupts();
+    }
+
+    void arm_sniffer_interrupts() {
+        os_timer_arm(&device_status_update_timer, DEVICE_STATUS_UPDATE_INTERVAL_MILLIS, true);
+
+        #ifdef DEBUG
+        os_timer_arm(&device_report_timer, DEVICE_STATUS_REPORT_INTERVAL_MILLIS, true);
+        #endif
+    }
+
+    void disarm_sniffer_interrupts() {
+        os_timer_disarm(&device_status_update_timer);
+
+        #ifdef DEBUG
+        os_timer_disarm(&device_report_timer);
+        #endif
+    }
+
 public :
     static LedService& instance() {
         static LedService INSTANCE;
         return INSTANCE;
     }
 
-    static void write_status_led(void *pArg) {
+    void write_status_led(void *pArg) {
         if(DeviceService::are_all_registered_devices_active()) {
             enable_heartbeat_effect();
         } else {
@@ -78,13 +113,13 @@ public :
     }
 
     void heartbeat(void *pArg) {
-        interruptService.disarm_sniffer_interrupts();
+        disarm_sniffer_interrupts();
 
         RGBColor color = calculate_rgb_value();
         rgb_heartbeat(color.red(), color.green(), color.blue());
         rgb(color.red(), color.green(), color.blue());
 
-        interruptService.arm_sniffer_interrupts();
+        arm_sniffer_interrupts();
     }
 
     void enable_heartbeat_effect() {

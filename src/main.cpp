@@ -3,6 +3,7 @@
 #include "services/mac_sniffer.h"
 #include "services/led_service.h"
 #include "services/device_service.h"
+#include "services/report_service.h"
 
 // --- CODE STARTS HERE ---
 
