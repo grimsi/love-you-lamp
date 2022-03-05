@@ -33,8 +33,7 @@
 #define LED_TYPE COMMON_CATHODE
 
 Device* devices[] = {
-        //new Device("Anna-Lena iPhone", new MACAddress(0x82, 0xae, 0x30, 0x88, 0xd2, 0xc3), new RGBColor(0, 0, 255)),
-        new Device("Simon iPad", new MACAddress(0x72, 0xF7, 0x0A, 0x4F, 0x5C, 0x37), new RGBColor(0, 0, 255)),
+        new Device("Anna-Lena iPhone", new MACAddress(0x82, 0xae, 0x30, 0x88, 0xd2, 0xc3), new RGBColor(0, 0, 255)),
         new Device("Simon Handy", new MACAddress(0x36, 0x56, 0xdb, 0x3b, 0xc2, 0x14), new RGBColor(0, 200, 0))
 };
 
